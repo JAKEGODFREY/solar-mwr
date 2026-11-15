@@ -1,11 +1,13 @@
 ﻿import { useState } from "react";
 import { Button, Card, CardBody, Chip } from "@heroui/react";
 import "./App.css";
+import { CONTACT_API_URL } from "./constants";
 
 const navItems = [
   { label: "Services", href: "#services" },
   { label: "Why renewables", href: "#why-renewables" },
   { label: "Our work", href: "#our-work" },
+  { label: "Coverage", href: "#coverage" },
   { label: "Contact", href: "#contact" },
 ];
 
@@ -73,7 +75,7 @@ const highlights = [
 
 function Brand() {
   return (
-    <a className="brand" href="#top" aria-label="Sunward Energy home">
+    <a className="brand" href="#top" aria-label="MWR Renewables home">
       <span className="brand-mark" aria-hidden="true">
         <svg viewBox="0 0 32 32">
           <path d="M18.1 2.8 7.4 17.1h7.1l-1.2 12.1 11.3-16.5h-7.2l.7-9.9Z" />
@@ -88,6 +90,8 @@ function Brand() {
 
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState("");
 
   return (
     <main id="top">
@@ -170,13 +174,13 @@ function App() {
             </Button>
             <Button
               as="a"
-              href="#how-it-works"
+              href="#services"
               className="secondary-button"
               size="lg"
               radius="sm"
               variant="bordered"
             >
-              How it works
+              Explore services
             </Button>
           </div>
         </div>
@@ -301,6 +305,37 @@ function App() {
         </div>
       </section>
 
+      <section className="coverage-section" id="coverage">
+        <div className="coverage-inner page-shell">
+          <div className="coverage-copy">
+            <Chip className="section-chip" variant="flat" size="md">
+              Where we work
+            </Chip>
+            <h2>Local advice, wherever you call home.</h2>
+            <p>
+              We work with homeowners across our service area. Share your
+              postcode and we’ll confirm whether we can help with your project.
+            </p>
+          </div>
+          <div className="coverage-details">
+            <article>
+              <span className="coverage-icon" aria-hidden="true">⌖</span>
+              <div>
+                <h3>Coverage area</h3>
+                <p>Ask us to check availability in your area.</p>
+              </div>
+            </article>
+            <article>
+              <span className="coverage-icon" aria-hidden="true">◷</span>
+              <div>
+                <h3>Available hours</h3>
+                <p>Contact us to arrange a call at a time that works for you.</p>
+              </div>
+            </article>
+            <a className="coverage-cta" href="#contact">Check your postcode <span aria-hidden="true">→</span></a>
+          </div>
+        </div>
+      </section>
       <section className="contact-section page-shell" id="contact">
         <Chip className="section-chip" variant="flat" size="md">
           Get in touch
@@ -312,27 +347,39 @@ function App() {
         </p>
         <form
           className="contact-form"
-          onSubmit={(event) => {
+          onSubmit={async (event) => {
             event.preventDefault();
-            const formData = new FormData(event.currentTarget);
-            const subject = encodeURIComponent(
-              "Renewable energy enquiry from " + formData.get("name"),
-            );
-            const body = encodeURIComponent(
-              "Name: " +
-                formData.get("name") +
-                "\nEmail: " +
-                formData.get("email") +
-                "\nPhone: " +
-                (formData.get("phone") || "Not provided") +
-                "\nInterested in: " +
-                formData.get("interest") +
-                "\n\nMessage:\n" +
-                formData.get("message"),
-            );
-            window.location.href = `mailto:hello@sunward.example?subject=${subject}&body=${body}`;
+            const form = event.currentTarget;
+            setIsSubmitting(true);
+            setSubmitStatus("");
+            const formData = new FormData(form);
+            const endpoint = CONTACT_API_URL;
+
+            if (!endpoint) {
+              setSubmitStatus("Contact form is not configured yet. Please try again later.");
+              setIsSubmitting(false);
+              return;
+            }
+
+            try {
+              const response = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(Object.fromEntries(formData.entries())),
+              });
+              if (!response.ok) throw new Error("Request failed");
+              form.reset();
+              setSubmitStatus("Thanks — your enquiry has been sent. We’ll be in touch soon.");
+            } catch {
+              setSubmitStatus("Sorry, we couldn’t send your enquiry. Please try again shortly.");
+            } finally {
+              setIsSubmitting(false);
+            }
           }}
         >
+          <div className="form-trap" aria-hidden="true">
+            <label>Leave this field empty<input name="website" tabIndex={-1} autoComplete="off" /></label>
+          </div>
           <div className="contact-form-fields">
             <label>
               Name
@@ -388,13 +435,15 @@ function App() {
           </div>
           <Button
             type="submit"
+            isDisabled={isSubmitting}
             className="primary-button gradient-button"
             size="lg"
             radius="sm"
             endContent={<span aria-hidden="true">→</span>}
           >
-            Send enquiry
+            {isSubmitting ? "Sending…" : "Send enquiry"}
           </Button>
+          {submitStatus && <p className="form-status" role="status">{submitStatus}</p>}
         </form>
       </section>
       <footer>

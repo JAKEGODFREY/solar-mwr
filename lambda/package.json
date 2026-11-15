@@ -1,0 +1,8 @@
+{
+  "name": "mwr-contact-lambda",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@aws-sdk/client-sns": "^3.900.0"
+  }
+}
